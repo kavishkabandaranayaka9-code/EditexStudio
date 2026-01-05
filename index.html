@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Editex Studio | Secure Data Vault</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+    <style>
+        :root { 
+            --primary: #3b82f6; 
+            --bg: #0f172a; 
+            --card: #1e293b; 
+            --text-main: #f1f5f9; 
+            --text-dim: #94a3b8; 
+            --border: #334155;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+        }
+        
+        html, body { max-width: 100%; overflow-x: hidden; background: var(--bg); color: var(--text-main); font-family: 'Inter', sans-serif; margin: 0; padding: 0; }
+        body { display: flex; flex-direction: column; align-items: center; min-height: 100vh; overflow-y: auto; padding-bottom: 50px; }
+
+        /* Navbar */
+        .navbar { width: 100%; background: #020617; padding: 18px 0; box-shadow: 0 4px 12px rgba(0,0,0,0.3); display: flex; justify-content: center; border-bottom: 1px solid var(--border); }
+        .nav-content { width: 90%; max-width: 1000px; display: flex; justify-content: space-between; align-items: center; }
+        .brand { font-size: 22px; font-weight: 800; color: #fff; text-decoration: none; }
+        .brand span { color: var(--primary); }
+
+        /* Warning Banner */
+        .warning-strip { width: 100%; background: rgba(245, 158, 11, 0.1); color: var(--warning); padding: 10px 0; font-size: 11px; text-align: center; border-bottom: 1px solid rgba(245, 158, 11, 0.2); font-weight: 600; }
+
+        .container { 
+            width: 90%; max-width: 460px; background: var(--card); 
+            border: 1px solid var(--border); padding: 30px; 
+            border-radius: 24px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.2);
+            margin-top: 20px; box-sizing: border-box; 
+        }
+        
+        /* Compliance Box */
+        .compliance-note { background: rgba(15, 23, 42, 0.6); border-radius: 12px; padding: 15px; margin-bottom: 20px; border-left: 4px solid var(--danger); }
+        .compliance-note h4 { margin: 0 0 5px 0; font-size: 13px; color: var(--danger); text-transform: uppercase; }
+        .compliance-note p { margin: 0; font-size: 11px; color: var(--text-dim); line-height: 1.4; }
+
+        .tabs { display: flex; background: #0f172a; padding: 6px; border-radius: 14px; margin-bottom: 25px; border: 1px solid var(--border); }
+        .tab { flex: 1; padding: 12px; cursor: pointer; text-align: center; font-size: 14px; font-weight: 700; border-radius: 10px; color: var(--text-dim); transition: 0.3s; }
+        .tab.active { background: var(--primary); color: #fff; }
+        
+        label { font-size: 13px; font-weight: 700; color: var(--text-dim); display: block; margin-top: 18px; margin-bottom: 6px; }
+        select, textarea, input[type="password"] { width: 100%; background: #0f172a; border: 1.5px solid var(--border); color: #fff; padding: 14px; border-radius: 12px; outline: none; box-sizing: border-box; font-size: 15px; }
+
+        .btn { width: 100%; background: var(--primary); color: #fff; border: none; padding: 16px; font-weight: 700; cursor: pointer; border-radius: 12px; font-size: 16px; margin-top: 20px; }
+        
+        .status-box { margin-top: 25px; padding: 20px; background: rgba(16, 185, 129, 0.1); border: 1px solid #10b981; border-radius: 14px; display: none; text-align: center; }
+        .copy-btn { background: #10b981; color: #fff; border: none; padding: 12px; font-weight: bold; cursor: pointer; border-radius: 10px; width: 100%; margin-top: 12px; }
+        
+        .footer { margin-top: 40px; width: 90%; max-width: 460px; text-align: center; }
+        .footer p { font-size: 11px; color: var(--text-dim); margin-bottom: 15px; }
+        .footer-links span { font-size: 12px; color: var(--primary); cursor: pointer; font-weight: 700; margin: 0 10px; text-decoration: underline; }
+
+        /* Modal */
+        .modal { display: none; position: fixed; z-index: 100; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); backdrop-filter: blur(5px); }
+        .modal-content { background: var(--card); margin: 10% auto; padding: 25px; border: 1px solid var(--border); width: 85%; max-width: 500px; border-radius: 20px; color: var(--text-main); font-size: 13px; line-height: 1.6; max-height: 75vh; overflow-y: auto; }
+    </style>
+</head>
+<body>
+
+<div class="warning-strip">⚠️ NOTICE: THIS TOOL IS FOR LEGAL PRIVACY PROTECTION ONLY.</div>
+
+<nav class="navbar">
+    <div class="nav-content">
+        <a href="#" class="brand">Editex<span>Studio</span></a>
+        <div style="font-size: 10px; font-weight: 700; color: #10b981; border: 1px solid #10b981; padding: 2px 8px; border-radius: 4px;">LOCAL ENCRYPTION</div>
+    </div>
+</nav>
+
+<div class="container">
+    <div class="compliance-note">
+        <h4>Legal Disclaimer</h4>
+        <p>Editex Studio provides technology only. We do not store, monitor, or verify your data. Users are legally responsible for the content they encrypt.</p>
+    </div>
+
+    <div class="tabs">
+        <div id="t1" class="tab active" onclick="showTab('lock')">Encrypt</div>
+        <div id="t2" class="tab" onclick="showTab('unlock')">Decrypt</div>
+    </div>
+
+    <div id="lockS">
+        <label>Data Type</label>
+        <select id="dataType" onchange="toggleInput()">
+            <option value="text">Private Message</option>
+            <option value="image">Private Media</option>
+        </select>
+
+        <div id="textInputArea">
+            <textarea id="msg" rows="3" placeholder="Input sensitive data..."></textarea>
+        </div>
+        
+        <div id="fileArea" style="display:none;">
+            <input type="file" id="fileInput" accept="image/*" style="width:100%; color:var(--text-dim); border:1px dashed var(--border); padding:10px; border-radius:8px;">
+        </div>
+        
+        <label>Security Password</label>
+        <input type="password" id="pw" placeholder="Required for decryption">
+        
+        <button class="btn" onclick="executeLock()">Lock Securely</button>
+        
+        <div id="out1" class="status-box">
+            <p style="font-size: 12px; color: #10b981;">✔ Local Encryption Complete</p>
+            <button class="copy-btn" onclick="copyHiddenHash()">Copy Secure Hash</button>
+            <textarea id="hiddenHash" style="display:none;"></textarea>
+        </div>
+    </div>
+
+    <div id="unlockS" style="display:none;">
+        <label>Paste Hash Code</label>
+        <textarea id="inpCode" rows="3" placeholder="Paste hash here..."></textarea>
+        <label>Decryption Password</label>
+        <input type="password" id="pw2" placeholder="Enter original password">
+        <button class="btn" onclick="executeUnlock()">Unlock Data</button>
+        
+        <div id="out2" class="status-box" style="display:none; background: #0f172a; border: 1px solid var(--border);">
+            <p id="decryptedOutput" style="color: #fff; word-break: break-all; font-size: 14px;"></p>
+            <img id="decryptedImage" src="" style="max-width:100%; margin-top:10px; display:none;">
+            <button id="dlBtn" class="btn" style="background:#334155; display:none;" onclick="downloadImage()">Save File</button>
+        </div>
+    </div>
+</div>
+
+<div class="footer">
+    <p>© 2026 Editex Studio. Strictly for authorized use. Unauthorized or illegal activities are strictly prohibited.</p>
+    <div class="footer-links">
+        <span onclick="openModal('about')">About Us</span>
+        <span onclick="openModal('terms')">Terms & Policy</span>
+        <span onclick="openModal('warning')">User Warnings</span>
+    </div>
+</div>
+
+<div id="modalBox" class="modal">
+    <div class="modal-content">
+        <span style="color:var(--primary); float:right; cursor:pointer; font-weight:bold;" onclick="closeModal()">CLOSE</span>
+        <div id="modalText"></div>
+    </div>
+</div>
+
+<script>
+    const _0xP = () => atob("V05JUVVFX0tFWQ==") + "_" + atob("OTk4ODc3NjY1NTQ0");
+
+    function showTab(m) {
+        document.getElementById('lockS').style.display = m=='lock'?'block':'none';
+        document.getElementById('unlockS').style.display = m=='unlock'?'block':'none';
+        document.getElementById('t1').className = m=='lock'?'tab active':'tab';
+        document.getElementById('t2').className = m=='unlock'?'tab active':'tab';
+    }
+
+    function toggleInput() {
+        const isText = document.getElementById('dataType').value === 'text';
+        document.getElementById('textInputArea').style.display = isText ? 'block' : 'none';
+        document.getElementById('fileArea').style.display = isText ? 'none' : 'block';
+    }
+
+    function executeLock() {
+        const password = document.getElementById('pw').value;
+        if (!password) return alert("Password is required for security.");
+        if (document.getElementById('dataType').value === 'text') {
+            const message = document.getElementById('msg').value;
+            if (!message) return;
+            const enc = CryptoJS.AES.encrypt(message, password + _0xP()).toString();
+            document.getElementById('hiddenHash').value = "STX_TXT" + btoa(enc);
+            document.getElementById('out1').style.display = "block";
+        } else {
+            const file = document.getElementById('fileInput').files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const enc = CryptoJS.AES.encrypt(e.target.result, password + _0xP()).toString();
+                document.getElementById('hiddenHash').value = "STX_IMG" + btoa(enc);
+                document.getElementById('out1').style.display = "block";
+            };
+            reader.readAsDataURL(file);
+        }
+    }
+
+    function copyHiddenHash() {
+        navigator.clipboard.writeText(document.getElementById('hiddenHash').value);
+        alert("Hash copied. Share it only with authorized recipients.");
+    }
+
+    function executeUnlock() {
+        const hash = document.getElementById('inpCode').value;
+        const pw = document.getElementById('pw2').value;
+        try {
+            const clean = atob(hash.replace("STX_TXT", "").replace("STX_IMG", ""));
+            const dec = CryptoJS.AES.decrypt(clean, pw + _0xP()).toString(CryptoJS.enc.Utf8);
+            if (!dec) throw new Error();
+            document.getElementById('out2').style.display = "block";
+            if (hash.startsWith("STX_IMG")) {
+                document.getElementById('decryptedImage').src = dec;
+                document.getElementById('decryptedImage').style.display = 'block';
+                document.getElementById('dlBtn').style.display = 'block';
+                document.getElementById('decryptedOutput').innerText = "";
+            } else {
+                document.getElementById('decryptedOutput').innerText = dec;
+                document.getElementById('decryptedImage').style.display = 'none';
+                document.getElementById('dlBtn').style.display = 'none';
+            }
+        } catch(e) { alert("Access Denied: Invalid Hash or Password."); }
+    }
+
+    function downloadImage() {
+        const link = document.createElement('a');
+        link.href = document.getElementById('decryptedImage').src;
+        link.download = 'Editex_Recovered.png';
+        link.click();
+    }
+
+    const content = {
+        about: `<h3>About Editex Studio</h3><p>We are a privacy-first technology provider. Our tools are designed to empower individuals with digital security. Our "Zero-Knowledge" architecture ensures that your data remains yours alone.</p>`,
+        terms: `<h3>Terms of Service</h3><p>1. <b>User Compliance:</b> By using this tool, you agree not to encrypt any illegal content.</p><p>2. <b>No Liability:</b> Editex Studio is not responsible for any misuse of this encryption technology.</p><p>3. <b>Data Recovery:</b> We do not store passwords. If you lose your password, data recovery is impossible.</p>`,
+        warning: `<h3>⚠ User Warning</h3><p>• Do not use this tool for storing illegal materials.</p><p>• Any suspicious activity may be subject to local digital privacy laws.</p><p>• Editex Studio operates as a tool provider and does not facilitate or encourage illegal data transfer.</p>`
+    };
+
+    function openModal(type) {
+        document.getElementById('modalText').innerHTML = content[type];
+        document.getElementById('modalBox').style.display = "block";
+    }
+
+    function closeModal() {
+        document.getElementById('modalBox').style.display = "none";
+    }
+</script>
+</body>
+</html>
